@@ -252,8 +252,8 @@ export function SchemeToolbar({
   whatIf,
   setWhatIf,
 }: {
-  mode: 'iso' | 'tech'
-  setMode: (m: 'iso' | 'tech') => void
+  mode: '3d' | 'iso' | 'tech'
+  setMode: (m: '3d' | 'iso' | 'tech') => void
   whatIf: boolean
   setWhatIf: (v: boolean) => void
 }) {
@@ -262,6 +262,7 @@ export function SchemeToolbar({
       <div className="glass flex rounded-xl p-1">
         {(
           [
+            ['3d', '3D топология'],
             ['iso', 'Изометрическая схема'],
             ['tech', 'Технологическая схема'],
           ] as const
