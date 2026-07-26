@@ -1,72 +1,31 @@
 import { Suspense, useMemo, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import {
-  ContactShadows,
-  Environment,
-  OrbitControls,
-} from '@react-three/drei'
+import { ContactShadows, Environment, OrbitControls, Sky } from '@react-three/drei'
 import { edges3d, nodes3d } from '../../data/topology3d'
 import { FacilityMesh } from './FacilityMesh'
 import { FlowPipe } from './FlowPipe'
 import { ObjectDetailPanel } from './ObjectDetailPanel'
 import { pipeMat } from './cim/materials'
-import { mat } from './cim/materials'
+import { GisTerrain } from './cim/GisTerrain'
+import { WellboresUnderground } from './cim/DetailedWell'
+import { FIELD_ORIGIN } from './cim/gis'
 import type { FlowKind } from '../../data/topology'
-
-function SiteGround() {
-  return (
-    <group>
-      {/* earth */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, 0]} receiveShadow>
-        <planeGeometry args={[120, 120]} />
-        <meshStandardMaterial color="#8A8578" roughness={1} metalness={0} />
-      </mesh>
-      {/* gravel yard */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
-        <planeGeometry args={[70, 55]} />
-        <meshStandardMaterial color={mat.gravel} roughness={0.95} metalness={0.05} />
-      </mesh>
-      {/* main road */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 2]} receiveShadow>
-        <planeGeometry args={[55, 3.2]} />
-        <meshStandardMaterial color={mat.asphalt} roughness={0.9} metalness={0.05} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-2, 0.01, 0]} receiveShadow>
-        <planeGeometry args={[3.2, 40]} />
-        <meshStandardMaterial color={mat.asphalt} roughness={0.9} metalness={0.05} />
-      </mesh>
-      {/* road marking */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 2]}>
-        <planeGeometry args={[55, 0.08]} />
-        <meshStandardMaterial color="#D4D8DE" />
-      </mesh>
-      {/* perimeter fence posts */}
-      {Array.from({ length: 24 }, (_, i) => {
-        const t = (i / 24) * Math.PI * 2
-        const r = 32
-        return (
-          <mesh
-            key={i}
-            position={[Math.cos(t) * r, 0.6, Math.sin(t) * r * 0.75]}
-            castShadow
-          >
-            <boxGeometry args={[0.08, 1.2, 0.08]} />
-            <meshStandardMaterial color={mat.steelDark} metalness={0.5} roughness={0.4} />
-          </mesh>
-        )
-      })}
-    </group>
-  )
-}
+import { cn } from '../../lib/utils'
 
 function Scene({
   whatIf,
   selectedId,
   onSelect,
+  mapMode,
+  showGrass,
+  showWellbores,
 }: {
   whatIf: boolean
   selectedId: string | null
   onSelect: (id: string | null) => void
+  mapMode: 'imagery' | 'topo' | 'none'
+  showGrass: boolean
+  showWellbores: boolean
 }) {
   const positions = useMemo(() => {
     const map = new Map<string, [number, number, number]>()
@@ -74,6 +33,12 @@ function Scene({
       map.set(n.id, [n.position.x, n.position.y, n.position.z])
     })
     return map
+  }, [])
+
+  const wellOrigins = useMemo(() => {
+    return nodes3d
+      .filter((n) => n.data.kind === 'wells' || n.data.kind === 'plast')
+      .map((n) => [n.position.x, n.position.y, n.position.z] as [number, number, number])
   }, [])
 
   const related = useMemo(() => {
@@ -92,78 +57,82 @@ function Scene({
 
   return (
     <>
-      <color attach="background" args={['#D8DEE6']} />
-      <fog attach="fog" args={['#D8DEE6', 55, 95]} />
-      <hemisphereLight args={['#F2F5F8', '#8A8578', 0.55]} />
-      <ambientLight intensity={0.42} />
+      <color attach="background" args={['#B8C4CE']} />
+      <fog attach="fog" args={['#B8C4CE', 60, 110]} />
+      <Sky
+        distance={450000}
+        sunPosition={[40, 18, 25]}
+        inclination={0.49}
+        azimuth={0.22}
+        mieCoefficient={0.004}
+        rayleigh={0.8}
+      />
+      <hemisphereLight args={['#EAF2FF', '#6B8F4E', 0.5]} />
+      <ambientLight intensity={0.38} />
       <directionalLight
         castShadow
-        position={[22, 28, 12]}
-        intensity={1.55}
+        position={[30, 35, 16]}
+        intensity={1.65}
         shadow-mapSize={[2048, 2048]}
-        shadow-camera-far={90}
-        shadow-camera-left={-40}
-        shadow-camera-right={40}
-        shadow-camera-top={40}
-        shadow-camera-bottom={-40}
-        color="#FFF8F0"
+        shadow-camera-far={120}
+        shadow-camera-left={-50}
+        shadow-camera-right={50}
+        shadow-camera-top={50}
+        shadow-camera-bottom={-50}
+        color="#FFF6E8"
       />
-      <directionalLight position={[-15, 10, -10]} intensity={0.35} color="#B8C4D4" />
+      <directionalLight position={[-20, 12, -14]} intensity={0.3} color="#A8B8C8" />
 
-      <SiteGround />
+      <GisTerrain mapMode={mapMode} showGrass={showGrass} />
+
+      <WellboresUnderground origins={wellOrigins} visible={showWellbores} />
 
       {edges3d.map((e, i) => {
         const a = positions.get(e.source)
         const b = positions.get(e.target)
         if (!a || !b) return null
-        const start: [number, number, number] = [a[0], 0, a[2]]
-        const end: [number, number, number] = [b[0], 0, b[2]]
-        const active = !related || related.has(e.id)
         return (
           <FlowPipe
             key={e.id}
-            start={start}
-            end={end}
+            start={[a[0], 0, a[2]]}
+            end={[b[0], 0, b[2]]}
             kind={e.kind}
-            active={active}
+            active={!related || related.has(e.id)}
             whatIf={whatIf}
             index={i % 3}
           />
         )
       })}
 
-      {nodes3d.map((n) => {
-        const dimmed = !!related && !related.has(n.id)
-        return (
-          <FacilityMesh
-            key={n.id}
-            id={n.id}
-            position={[n.position.x, n.position.y, n.position.z]}
-            data={n.data}
-            selected={selectedId === n.id}
-            dimmed={dimmed}
-            onSelect={onSelect}
-          />
-        )
-      })}
+      {nodes3d.map((n) => (
+        <FacilityMesh
+          key={n.id}
+          id={n.id}
+          position={[n.position.x, n.position.y, n.position.z]}
+          data={n.data}
+          selected={selectedId === n.id}
+          dimmed={!!related && !related.has(n.id)}
+          onSelect={onSelect}
+        />
+      ))}
 
       <ContactShadows
-        position={[0, 0.02, 0]}
-        opacity={0.4}
-        scale={80}
-        blur={2.2}
-        far={20}
-        color="#3A3F45"
+        position={[0, 0.03, 0]}
+        opacity={0.35}
+        scale={90}
+        blur={2.4}
+        far={22}
+        color="#2A3035"
       />
-      <Environment preset="warehouse" environmentIntensity={0.45} />
+      <Environment preset="warehouse" environmentIntensity={0.35} />
       <OrbitControls
         makeDefault
         enableDamping
         dampingFactor={0.07}
-        minDistance={8}
-        maxDistance={70}
-        maxPolarAngle={Math.PI / 2.08}
-        target={[0, 1, 0]}
+        minDistance={6}
+        maxDistance={85}
+        maxPolarAngle={Math.PI / 2.05}
+        target={[0, 1.2, 0]}
       />
     </>
   )
@@ -179,32 +148,91 @@ const legend: { kind: FlowKind; label: string; color: string }[] = [
 
 export function Topology3D({ whatIf }: { whatIf: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [mapMode, setMapMode] = useState<'imagery' | 'topo' | 'none'>('imagery')
+  const [showGrass, setShowGrass] = useState(true)
+  const [showWellbores, setShowWellbores] = useState(true)
   const selected = nodes3d.find((n) => n.id === selectedId)
 
   return (
-    <div className="relative h-[calc(100vh-7.5rem)] w-full overflow-hidden rounded-none border border-white/10 bg-[#D8DEE6] md:rounded-2xl">
+    <div className="relative h-[calc(100vh-7.5rem)] w-full overflow-hidden rounded-none border border-white/10 bg-[#B8C4CE] md:rounded-2xl">
       <Canvas
         shadows
         dpr={[1, 1.75]}
-        camera={{ position: [28, 18, 28], fov: 38, near: 0.1, far: 250 }}
+        camera={{ position: [32, 20, 34], fov: 36, near: 0.1, far: 300 }}
         gl={{ antialias: true, logarithmicDepthBuffer: true }}
         onPointerMissed={() => setSelectedId(null)}
       >
         <Suspense fallback={null}>
-          <Scene whatIf={whatIf} selectedId={selectedId} onSelect={setSelectedId} />
+          <Scene
+            whatIf={whatIf}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            mapMode={mapMode}
+            showGrass={showGrass}
+            showWellbores={showWellbores}
+          />
         </Suspense>
       </Canvas>
 
-      <div className="pointer-events-none absolute left-4 top-4 z-10 rounded border border-[#B0B5BB] bg-white/95 px-3 py-2 shadow-sm">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-[#5C636B]">
-          ЦИМ · 3D модель обустройства
+      <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-sm rounded border border-[#B0B5BB] bg-white/95 px-3 py-2 shadow-sm">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-[#5C636B]">
+          ЦИМ + ГИС · Digital Twin
         </div>
         <div className="mt-0.5 text-sm font-semibold text-[#1a2332]">
-          Интерактивная схема промысла
+          3D обустройство промысла
         </div>
         <div className="mt-0.5 text-[11px] text-[#6B7280]">
-          Вращение · масштаб · клик по объекту · LOD-детализация
+          Подложка ESRI · {FIELD_ORIGIN.lat.toFixed(3)}°N, {FIELD_ORIGIN.lon.toFixed(3)}°E ·
+          скважины LOD+ · стволы
         </div>
+      </div>
+
+      {/* Layer panel — VGIS / Esri style */}
+      <div className="absolute right-4 top-4 z-10 w-52 rounded border border-[#B0B5BB] bg-white/95 p-3 shadow-sm">
+        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#5C636B]">
+          Слои карты
+        </div>
+        <div className="space-y-1.5">
+          {(
+            [
+              ['imagery', 'Спутник (ESRI)'],
+              ['topo', 'Топооснова'],
+              ['none', 'Без подложки'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setMapMode(id)}
+              className={cn(
+                'w-full rounded px-2 py-1.5 text-left text-[11px] transition',
+                mapMode === id
+                  ? 'bg-gpn-blue text-white'
+                  : 'bg-[#F4F7FA] text-[#1a2332] hover:bg-[#E8ECF0]',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className="mt-3 flex cursor-pointer items-center justify-between text-[11px] text-[#1a2332]">
+          <span>Травяной покров</span>
+          <input
+            type="checkbox"
+            checked={showGrass}
+            onChange={(e) => setShowGrass(e.target.checked)}
+            className="accent-gpn-blue"
+          />
+        </label>
+        <label className="mt-2 flex cursor-pointer items-center justify-between text-[11px] text-[#1a2332]">
+          <span>Стволы скважин (3D)</span>
+          <input
+            type="checkbox"
+            checked={showWellbores}
+            onChange={(e) => setShowWellbores(e.target.checked)}
+            className="accent-gpn-blue"
+          />
+        </label>
       </div>
 
       <div className="absolute bottom-4 left-4 z-10 rounded border border-[#B0B5BB] bg-white/95 px-3 py-2 shadow-sm">

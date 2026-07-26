@@ -1,5 +1,6 @@
 import type { NodeKind } from '../../../data/topology'
 import { mat, pipeMat } from './materials'
+import { WellClusterPad } from './DetailedWell'
 import {
   BlockBuilding,
   Foundation,
@@ -13,7 +14,6 @@ import {
   StorageTank,
   TransformerYard,
   VerticalVessel,
-  WellheadAssembly,
   Column,
   IBeam,
 } from './Primitives'
@@ -22,29 +22,7 @@ export function FacilityAssembly({ kind }: { kind: NodeKind }) {
   switch (kind) {
     case 'wells':
     case 'cluster':
-      return (
-        <group>
-          <Foundation w={4.2} d={3.2} h={0.14} />
-          <WellheadAssembly position={[-1.2, 0, -0.6]} />
-          <WellheadAssembly position={[0, 0, 0.4]} />
-          <WellheadAssembly position={[1.2, 0, -0.5]} />
-          <BlockBuilding w={1.4} h={1.0} d={1.1} position={[0, 0, 1.4]} />
-          <PipeRackBay
-            length={3.2}
-            height={1.3}
-            width={0.9}
-            position={[0, 0, -1.5]}
-            rotationY={Math.PI / 2}
-            pipes={[pipeMat.oil, pipeMat.gas, pipeMat.water]}
-          />
-          <HorizontalPipe
-            length={2.4}
-            color={pipeMat.oil}
-            position={[2.2, 0.35, 0]}
-            radius={0.06}
-          />
-        </group>
-      )
+      return <WellClusterPad count={4} withPumpjack />
 
     case 'upn':
     case 'dns':
