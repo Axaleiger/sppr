@@ -3,36 +3,58 @@ import { Canvas } from '@react-three/fiber'
 import {
   ContactShadows,
   Environment,
-  Grid,
   OrbitControls,
-  Sky,
 } from '@react-three/drei'
 import { edges3d, nodes3d } from '../../data/topology3d'
 import { FacilityMesh } from './FacilityMesh'
 import { FlowPipe } from './FlowPipe'
 import { ObjectDetailPanel } from './ObjectDetailPanel'
-import { flowColors, type FlowKind } from '../../data/topology'
+import { pipeMat } from './cim/materials'
+import { mat } from './cim/materials'
+import type { FlowKind } from '../../data/topology'
 
-function Terrain() {
+function SiteGround() {
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
-        <planeGeometry args={[60, 60]} />
-        <meshStandardMaterial color="#0a1f33" roughness={0.95} metalness={0.05} />
+      {/* earth */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, 0]} receiveShadow>
+        <planeGeometry args={[120, 120]} />
+        <meshStandardMaterial color="#8A8578" roughness={1} metalness={0} />
       </mesh>
-      <Grid
-        position={[0, 0.01, 0]}
-        args={[60, 60]}
-        cellSize={1}
-        cellThickness={0.6}
-        cellColor="#0d3a5c"
-        sectionSize={5}
-        sectionThickness={1.2}
-        sectionColor="#1a6fa3"
-        fadeDistance={42}
-        fadeStrength={1.2}
-        infiniteGrid
-      />
+      {/* gravel yard */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+        <planeGeometry args={[70, 55]} />
+        <meshStandardMaterial color={mat.gravel} roughness={0.95} metalness={0.05} />
+      </mesh>
+      {/* main road */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 2]} receiveShadow>
+        <planeGeometry args={[55, 3.2]} />
+        <meshStandardMaterial color={mat.asphalt} roughness={0.9} metalness={0.05} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-2, 0.01, 0]} receiveShadow>
+        <planeGeometry args={[3.2, 40]} />
+        <meshStandardMaterial color={mat.asphalt} roughness={0.9} metalness={0.05} />
+      </mesh>
+      {/* road marking */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 2]}>
+        <planeGeometry args={[55, 0.08]} />
+        <meshStandardMaterial color="#D4D8DE" />
+      </mesh>
+      {/* perimeter fence posts */}
+      {Array.from({ length: 24 }, (_, i) => {
+        const t = (i / 24) * Math.PI * 2
+        const r = 32
+        return (
+          <mesh
+            key={i}
+            position={[Math.cos(t) * r, 0.6, Math.sin(t) * r * 0.75]}
+            castShadow
+          >
+            <boxGeometry args={[0.08, 1.2, 0.08]} />
+            <meshStandardMaterial color={mat.steelDark} metalness={0.5} roughness={0.4} />
+          </mesh>
+        )
+      })}
     </group>
   )
 }
@@ -70,31 +92,32 @@ function Scene({
 
   return (
     <>
-      <color attach="background" args={['#021526']} />
-      <fog attach="fog" args={['#021526', 28, 55]} />
-      <ambientLight intensity={0.45} />
+      <color attach="background" args={['#D8DEE6']} />
+      <fog attach="fog" args={['#D8DEE6', 55, 95]} />
+      <hemisphereLight args={['#F2F5F8', '#8A8578', 0.55]} />
+      <ambientLight intensity={0.42} />
       <directionalLight
         castShadow
-        position={[12, 18, 8]}
-        intensity={1.35}
+        position={[22, 28, 12]}
+        intensity={1.55}
         shadow-mapSize={[2048, 2048]}
-        color="#e8f4ff"
+        shadow-camera-far={90}
+        shadow-camera-left={-40}
+        shadow-camera-right={40}
+        shadow-camera-top={40}
+        shadow-camera-bottom={-40}
+        color="#FFF8F0"
       />
-      <pointLight position={[-10, 8, -6]} intensity={0.55} color="#32ADE5" />
-      <pointLight
-        position={[10, 6, 8]}
-        intensity={whatIf ? 0.9 : 0.35}
-        color={whatIf ? '#FF6A00' : '#006CB1'}
-      />
+      <directionalLight position={[-15, 10, -10]} intensity={0.35} color="#B8C4D4" />
 
-      <Terrain />
+      <SiteGround />
 
-      {edges3d.map((e) => {
+      {edges3d.map((e, i) => {
         const a = positions.get(e.source)
         const b = positions.get(e.target)
         if (!a || !b) return null
-        const start: [number, number, number] = [a[0], a[1] + 0.5, a[2]]
-        const end: [number, number, number] = [b[0], b[1] + 0.5, b[2]]
+        const start: [number, number, number] = [a[0], 0, a[2]]
+        const end: [number, number, number] = [b[0], 0, b[2]]
         const active = !related || related.has(e.id)
         return (
           <FlowPipe
@@ -104,6 +127,7 @@ function Scene({
             kind={e.kind}
             active={active}
             whatIf={whatIf}
+            index={i % 3}
           />
         )
       })}
@@ -118,47 +142,39 @@ function Scene({
             data={n.data}
             selected={selectedId === n.id}
             dimmed={dimmed}
-            whatIf={whatIf}
-            onSelect={(id) => onSelect(id)}
+            onSelect={onSelect}
           />
         )
       })}
 
       <ContactShadows
         position={[0, 0.02, 0]}
-        opacity={0.45}
-        scale={40}
-        blur={2.5}
-        far={12}
+        opacity={0.4}
+        scale={80}
+        blur={2.2}
+        far={20}
+        color="#3A3F45"
       />
-      <Environment preset="city" />
-      <Sky
-        distance={450000}
-        sunPosition={[8, 2, -6]}
-        inclination={0.48}
-        azimuth={0.25}
-        mieCoefficient={0.005}
-        rayleigh={0.6}
-      />
+      <Environment preset="warehouse" environmentIntensity={0.45} />
       <OrbitControls
         makeDefault
         enableDamping
-        dampingFactor={0.08}
-        minDistance={6}
-        maxDistance={36}
-        maxPolarAngle={Math.PI / 2.15}
-        target={[1, 0.5, 0]}
+        dampingFactor={0.07}
+        minDistance={8}
+        maxDistance={70}
+        maxPolarAngle={Math.PI / 2.08}
+        target={[0, 1, 0]}
       />
     </>
   )
 }
 
-const legend: { kind: FlowKind; label: string }[] = [
-  { kind: 'oil', label: 'Нефть' },
-  { kind: 'gas', label: 'Газ' },
-  { kind: 'water', label: 'Вода' },
-  { kind: 'power', label: 'Электричество' },
-  { kind: 'info', label: 'Информационные потоки' },
+const legend: { kind: FlowKind; label: string; color: string }[] = [
+  { kind: 'oil', label: 'Нефтепровод', color: pipeMat.oil },
+  { kind: 'gas', label: 'Газопровод', color: pipeMat.gas },
+  { kind: 'water', label: 'Водопровод', color: pipeMat.water },
+  { kind: 'power', label: 'Кабельные трассы / ВЛ', color: pipeMat.power },
+  { kind: 'info', label: 'Информационные потоки', color: pipeMat.info },
 ]
 
 export function Topology3D({ whatIf }: { whatIf: boolean }) {
@@ -166,42 +182,39 @@ export function Topology3D({ whatIf }: { whatIf: boolean }) {
   const selected = nodes3d.find((n) => n.id === selectedId)
 
   return (
-    <div className="relative h-[calc(100vh-7.5rem)] w-full overflow-hidden rounded-none md:rounded-2xl border border-white/10">
+    <div className="relative h-[calc(100vh-7.5rem)] w-full overflow-hidden rounded-none border border-white/10 bg-[#D8DEE6] md:rounded-2xl">
       <Canvas
         shadows
         dpr={[1, 1.75]}
-        camera={{ position: [14, 11, 14], fov: 42, near: 0.1, far: 200 }}
+        camera={{ position: [28, 18, 28], fov: 38, near: 0.1, far: 250 }}
+        gl={{ antialias: true, logarithmicDepthBuffer: true }}
         onPointerMissed={() => setSelectedId(null)}
       >
         <Suspense fallback={null}>
-          <Scene
-            whatIf={whatIf}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
+          <Scene whatIf={whatIf} selectedId={selectedId} onSelect={setSelectedId} />
         </Suspense>
       </Canvas>
 
-      <div className="pointer-events-none absolute left-4 top-4 z-10 glass rounded-2xl px-4 py-3">
-        <div className="font-display text-lg font-semibold text-white">
-          3D топология промысла
+      <div className="pointer-events-none absolute left-4 top-4 z-10 rounded border border-[#B0B5BB] bg-white/95 px-3 py-2 shadow-sm">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-[#5C636B]">
+          ЦИМ · 3D модель обустройства
         </div>
-        <div className="mt-0.5 text-xs text-white/55">
-          Вращение · колесо — масштаб · клик по объекту
+        <div className="mt-0.5 text-sm font-semibold text-[#1a2332]">
+          Интерактивная схема промысла
+        </div>
+        <div className="mt-0.5 text-[11px] text-[#6B7280]">
+          Вращение · масштаб · клик по объекту · LOD-детализация
         </div>
       </div>
 
-      <div className="glass absolute bottom-4 left-4 z-10 rounded-2xl px-4 py-3">
-        <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-white/50">
-          Легенда потоков
+      <div className="absolute bottom-4 left-4 z-10 rounded border border-[#B0B5BB] bg-white/95 px-3 py-2 shadow-sm">
+        <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#5C636B]">
+          Инженерные сети
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1">
           {legend.map((l) => (
-            <div key={l.kind} className="flex items-center gap-2 text-xs text-white/80">
-              <span
-                className="h-0.5 w-8 rounded-full"
-                style={{ background: flowColors[l.kind] }}
-              />
+            <div key={l.kind} className="flex items-center gap-2 text-[11px] text-[#1a2332]">
+              <span className="h-1 w-7 rounded-sm" style={{ background: l.color }} />
               {l.label}
             </div>
           ))}
@@ -209,8 +222,8 @@ export function Topology3D({ whatIf }: { whatIf: boolean }) {
       </div>
 
       {whatIf && (
-        <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full border border-energy/40 bg-energy/20 px-4 py-1.5 text-xs font-semibold text-energy backdrop-blur-md">
-          Режим «Что если» — альтернативные потоки
+        <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded border border-[#C0392B]/40 bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-[#C0392B] shadow-sm">
+          Режим «Что если» — вариантные потоки
         </div>
       )}
 

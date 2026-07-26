@@ -1,9 +1,17 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { QuadraticBezierLine } from '@react-three/drei'
 import type { Mesh } from 'three'
-import * as THREE from 'three'
-import { flowColors, type FlowKind } from '../../data/topology'
+import type { FlowKind } from '../../data/topology'
+import { pipeMat } from './cim/materials'
+import { Column, IBeam, HorizontalPipe } from './cim/Primitives'
+
+const colors: Record<FlowKind, string> = {
+  oil: pipeMat.oil,
+  gas: pipeMat.gas,
+  water: pipeMat.water,
+  power: pipeMat.power,
+  info: pipeMat.info,
+}
 
 interface Props {
   start: [number, number, number]
@@ -11,72 +19,109 @@ interface Props {
   kind: FlowKind
   active: boolean
   whatIf: boolean
+  index?: number
 }
 
-export function FlowPipe({ start, end, kind, active, whatIf }: Props) {
-  const color = whatIf && kind !== 'info' ? '#FF6A00' : flowColors[kind]
-  const mid: [number, number, number] = [
-    (start[0] + end[0]) / 2,
-    Math.max(start[1], end[1]) + 1.2 + Math.abs(start[0] - end[0]) * 0.08,
-    (start[2] + end[2]) / 2,
-  ]
+/** Multi-pipe elevated rack corridor between facilities — CAD style */
+export function FlowPipe({ start, end, kind, active, whatIf, index = 0 }: Props) {
+  const color = whatIf && kind !== 'info' ? '#C0392B' : colors[kind]
+
+  const { length, mid, yaw, supports } = useMemo(() => {
+    const dx = end[0] - start[0]
+    const dz = end[2] - start[2]
+    const len = Math.sqrt(dx * dx + dz * dz) || 0.01
+    const m: [number, number, number] = [
+      (start[0] + end[0]) / 2,
+      1.55 + index * 0.12,
+      (start[2] + end[2]) / 2,
+    ]
+    const y = Math.atan2(dx, dz)
+    const count = Math.max(2, Math.floor(len / 2.2))
+    const sup: [number, number, number][] = []
+    for (let i = 0; i <= count; i++) {
+      const t = i / count
+      sup.push([
+        start[0] + dx * t,
+        0,
+        start[2] + dz * t,
+      ])
+    }
+    return { length: len, mid: m, yaw: y, supports: sup }
+  }, [start, end, index])
 
   const particle = useRef<Mesh>(null)
-  const curve = useMemo(
-    () =>
-      new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(...start),
-        new THREE.Vector3(...mid),
-        new THREE.Vector3(...end),
-      ),
-    [start, end, mid],
-  )
-
   useFrame(({ clock }) => {
-    if (!particle.current || !active) return
-    const t = (clock.elapsedTime * (whatIf ? 0.45 : 0.28) + kind.length * 0.1) % 1
-    const p = curve.getPoint(t)
-    particle.current.position.copy(p)
+    if (!particle.current || !active || kind === 'info') return
+    const t = (clock.elapsedTime * 0.22 + index * 0.15) % 1
+    particle.current.position.set(
+      start[0] + (end[0] - start[0]) * t,
+      mid[1] + 0.08,
+      start[2] + (end[2] - start[2]) * t,
+    )
   })
 
-  const tube = useMemo(() => {
-    return new THREE.TubeGeometry(curve, 32, kind === 'info' ? 0.03 : 0.055, 8, false)
-  }, [curve, kind])
+  const lateral = (index - 1) * 0.18
 
   return (
     <group>
-      <mesh geometry={tube}>
-        <meshStandardMaterial
+      {supports.map((p, i) => (
+        <group key={i} position={p}>
+          <Column height={mid[1]} size={0.09} position={[-0.35, 0, 0]} />
+          <Column height={mid[1]} size={0.09} position={[0.35, 0, 0]} />
+          <IBeam length={0.85} position={[0, mid[1], 0]} />
+        </group>
+      ))}
+
+      <group position={mid} rotation={[0, yaw, 0]}>
+        <IBeam length={length} position={[0, 0, -0.35]} rotation={[0, Math.PI / 2, 0]} />
+        <IBeam length={length} position={[0, 0, 0.35]} rotation={[0, Math.PI / 2, 0]} />
+
+        <HorizontalPipe
+          length={length + 0.3}
+          radius={kind === 'info' ? 0.025 : 0.07}
           color={color}
-          transparent
-          opacity={active ? (kind === 'info' ? 0.45 : 0.85) : 0.12}
-          emissive={color}
-          emissiveIntensity={active ? (whatIf ? 0.55 : 0.25) : 0.05}
-          roughness={0.35}
-          metalness={0.4}
+          position={[lateral, 0.12, 0]}
+          rotationY={Math.PI / 2}
         />
-      </mesh>
 
-      <QuadraticBezierLine
-        start={start}
-        end={end}
-        mid={mid}
-        color={color}
-        lineWidth={active ? 2 : 0.5}
-        dashed={kind === 'info'}
-        dashScale={8}
-        transparent
-        opacity={active ? 0.9 : 0.15}
-      />
+        {/* companion pipes for visual density */}
+        {kind !== 'info' && (
+          <>
+            <HorizontalPipe
+              length={length + 0.3}
+              radius={0.045}
+              color={kind === 'oil' ? pipeMat.water : pipeMat.oil}
+              position={[lateral + 0.22, 0.1, 0]}
+              rotationY={Math.PI / 2}
+            />
+            <HorizontalPipe
+              length={length + 0.3}
+              radius={0.035}
+              color={pipeMat.air}
+              position={[lateral - 0.22, 0.1, 0]}
+              rotationY={Math.PI / 2}
+            />
+            {/* cable tray */}
+            <mesh position={[0, 0.28, 0]} castShadow>
+              <boxGeometry args={[0.35, 0.04, length]} />
+              <meshStandardMaterial color="#A0A7B0" metalness={0.45} roughness={0.45} />
+            </mesh>
+          </>
+        )}
+      </group>
 
-      {active && (
+      {active && kind !== 'info' && (
         <mesh ref={particle}>
-          <sphereGeometry args={[0.09, 12, 12]} />
-          <meshStandardMaterial
-            color="#ffffff"
-            emissive={color}
-            emissiveIntensity={1.2}
-          />
+          <sphereGeometry args={[0.06, 10, 10]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} />
+        </mesh>
+      )}
+
+      {/* dim inactive */}
+      {!active && (
+        <mesh position={mid} rotation={[0, yaw, Math.PI / 2]}>
+          <cylinderGeometry args={[0.08, 0.08, length, 8]} />
+          <meshStandardMaterial color={color} transparent opacity={0.12} />
         </mesh>
       )}
     </group>

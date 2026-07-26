@@ -13,13 +13,13 @@ export interface Topology3DNode {
   data: SchemeNodeData
 }
 
-/** World positions for cinematic isometric-like 3D layout */
+/** Site coordinates — spaced for detailed CIM assemblies */
 export const nodes3d: Topology3DNode[] = [
   {
     id: 'wells-1',
-    position: { x: -8, y: 0, z: -4 },
+    position: { x: -16, y: 0, z: -8 },
     data: {
-      label: 'СКВАЖИНЫ',
+      label: 'СКВАЖИНЫ · КУСТ 12',
       kind: 'wells',
       status: 95,
       sparkline: [42, 48, 45, 52, 58, 55, 62],
@@ -27,9 +27,9 @@ export const nodes3d: Topology3DNode[] = [
   },
   {
     id: 'wells-2',
-    position: { x: -8, y: 0, z: 2 },
+    position: { x: -16, y: 0, z: 4 },
     data: {
-      label: 'СКВАЖИНЫ',
+      label: 'СКВАЖИНЫ · КУСТ 15',
       kind: 'wells',
       status: 88,
       sparkline: [30, 34, 38, 36, 40, 44, 42],
@@ -37,7 +37,7 @@ export const nodes3d: Topology3DNode[] = [
   },
   {
     id: 'plast',
-    position: { x: -8, y: -1.2, z: 6 },
+    position: { x: -16, y: 0, z: 12 },
     data: {
       label: 'ПЛАСТ',
       kind: 'plast',
@@ -48,7 +48,7 @@ export const nodes3d: Topology3DNode[] = [
   },
   {
     id: 'upn',
-    position: { x: -1, y: 0, z: -1 },
+    position: { x: -2, y: 0, z: -2 },
     data: {
       label: 'УПН',
       kind: 'upn',
@@ -58,7 +58,7 @@ export const nodes3d: Topology3DNode[] = [
   },
   {
     id: 'gtes',
-    position: { x: 4, y: 0, z: -5 },
+    position: { x: 10, y: 0, z: -10 },
     data: {
       label: 'ГТЭС',
       kind: 'gtes',
@@ -68,9 +68,9 @@ export const nodes3d: Topology3DNode[] = [
   },
   {
     id: 'vl',
-    position: { x: 4, y: 0, z: -1 },
+    position: { x: 10, y: 0, z: -2 },
     data: {
-      label: 'ВЛ',
+      label: 'ПС / ВЛ',
       kind: 'vl',
       status: 100,
       sparkline: [90, 90, 91, 90, 92, 91, 93],
@@ -78,7 +78,7 @@ export const nodes3d: Topology3DNode[] = [
   },
   {
     id: 'ukpg',
-    position: { x: 9, y: 0, z: -1 },
+    position: { x: 14, y: 0, z: 6 },
     data: {
       label: 'УКПГ',
       kind: 'ukpg',
@@ -88,7 +88,7 @@ export const nodes3d: Topology3DNode[] = [
   },
   {
     id: 'phg',
-    position: { x: 9, y: 0, z: 5 },
+    position: { x: 14, y: 0, z: 16 },
     data: {
       label: 'ПХГ',
       kind: 'phg',
@@ -106,19 +106,19 @@ export const edges3d = isoEdges.map((e) => ({
 }))
 
 export const kindColors: Record<NodeKind, string> = {
-  wells: '#32ADE5',
-  upn: '#006CB1',
-  gtes: '#FF6A00',
-  vl: '#E8B923',
-  ukpg: '#006CB1',
-  phg: '#5BBEDE',
-  plast: '#004374',
-  dns: '#006CB1',
-  cppn: '#006CB1',
-  ks: '#E8B923',
-  ps: '#32ADE5',
-  pns: '#5BBEDE',
-  cluster: '#32ADE5',
-  arm: '#8A96A8',
-  external: '#8A96A8',
+  wells: '#6B7280',
+  upn: '#8B929A',
+  gtes: '#6B7280',
+  vl: '#8B929A',
+  ukpg: '#8B929A',
+  phg: '#8B929A',
+  plast: '#4A6B5C',
+  dns: '#8B929A',
+  cppn: '#8B929A',
+  ks: '#8B929A',
+  ps: '#8B929A',
+  pns: '#8B929A',
+  cluster: '#6B7280',
+  arm: '#B4BBC3',
+  external: '#A8ADB4',
 }
