@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Barlow Condensed", sans-serif;
+  --font-sans: "Onest", sans-serif;
+  --color-gpn-blue: #006cb1;
+  --color-gpn-navy: #004374;
+  --color-gpn-sky: #32ade5;
+  --color-gpn-ink: #0a1628;
+  --color-gpn-deep: #021526;
+  --color-gpn-surface: #f4f7fa;
+  --color-gpn-muted: #8a96a8;
+  --color-energy: #ff6a00;
+  --color-flow-oil: #8b5a2b;
+  --color-flow-gas: #e8b923;
+  --color-flow-water: #5bbede;
+  --color-flow-power: #004374;
+  --color-status-ok: #22c55e;
+  --color-status-warn: #f59e0b;
+  --color-status-crit: #ef4444;
+}
+
+:root {
+  color-scheme: dark;
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-strong: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --rim: rgba(50, 173, 229, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: #e8eef5;
+  background: var(--color-gpn-deep);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.bg-spatial {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(0, 108, 177, 0.35), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(50, 173, 229, 0.18), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 70% 100%, rgba(255, 106, 0, 0.08), transparent 45%),
+    linear-gradient(165deg, #021526 0%, #004374 48%, #021526 100%);
+}
+
+.bg-flame-motif {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpath d='M60 8c18 22 40 34 40 58a40 40 0 1 1-80 0c0-24 22-36 40-58z' fill='%23006CB1' fill-opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 8px 32px rgba(2, 21, 38, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.glass-strong {
+  background: var(--glass-strong);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 12px 40px rgba(2, 21, 38, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 67, 116, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 67, 116, 0.08);
+  color: var(--color-gpn-ink);
+}
+
+.card-lift {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-3px);
+  border-color: var(--rim);
+  box-shadow:
+    0 16px 40px rgba(0, 108, 177, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.flow-dash {
+  stroke-dasharray: 8 10;
+  animation: flow-move 1.4s linear infinite;
+}
+
+@keyframes flow-move {
+  to {
+    stroke-dashoffset: -36;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.pulse-soft {
+  animation: pulse-soft 2.2s ease-in-out infinite;
+}
+
+.react-flow__attribution {
+  display: none !important;
+}
+
+.react-flow__edge-path {
+  stroke-linecap: round;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(50, 173, 229, 0.35);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
