@@ -124,47 +124,37 @@ export function PipeRackBay({
   position = [0, 0, 0] as [number, number, number],
   rotationY = 0,
 }) {
-  const cols = [-width / 2, width / 2]
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {cols.map((x) => (
+      {[-width / 2, width / 2].map((x) => (
         <group key={x}>
-          <Column height={height} position={[x, 0, -length / 2]} />
-          <Column height={height} position={[x, 0, length / 2]} />
+          <mesh position={[x, height / 2, -length / 2]}>
+            <boxGeometry args={[0.1, height, 0.1]} />
+            <meshBasicMaterial color={mat.steelDark} />
+          </mesh>
+          <mesh position={[x, height / 2, length / 2]}>
+            <boxGeometry args={[0.1, height, 0.1]} />
+            <meshBasicMaterial color={mat.steelDark} />
+          </mesh>
         </group>
       ))}
-      {/* longitudinal beams */}
-      {cols.map((x) => (
-        <IBeam
-          key={`lb-${x}`}
-          length={length}
-          position={[x, height, 0]}
-          rotation={[0, Math.PI / 2, 0]}
-        />
-      ))}
-      {/* cross beams */}
-      {[-length / 2, 0, length / 2].map((z) => (
-        <IBeam key={`cb-${z}`} length={width} position={[0, height, z]} />
-      ))}
-      {/* pipes on rack */}
-      {pipes.map((c, i) => {
-        const x = -width / 2 + 0.2 + i * ((width - 0.4) / Math.max(pipes.length - 1, 1))
+      <mesh position={[0, height, 0]}>
+        <boxGeometry args={[width, 0.08, length]} />
+        <meshBasicMaterial color={mat.steel} />
+      </mesh>
+      {pipes.slice(0, 3).map((c, i) => {
+        const x = -width / 2 + 0.25 + i * ((width - 0.5) / 2)
         return (
           <HorizontalPipe
             key={i}
-            length={length + 0.4}
-            radius={0.045 + (i % 3) * 0.012}
+            length={length + 0.2}
+            radius={0.045}
             color={c}
-            position={[x, height + 0.12, 0]}
+            position={[x, height + 0.1, 0]}
             rotationY={Math.PI / 2}
           />
         )
       })}
-      {/* cable tray */}
-      <mesh position={[0, height + 0.28, 0]} castShadow>
-        <boxGeometry args={[width * 0.35, 0.04, length]} />
-        <meshStandardMaterial {...steelProps('light')} color="#A0A7B0" />
-      </mesh>
     </group>
   )
 }
@@ -313,26 +303,15 @@ export function BlockBuilding({
 }) {
   return (
     <group position={position}>
-      <Foundation w={w + 0.3} d={d + 0.3} h={0.12} />
-      <mesh position={[0, 0.12 + h / 2, 0]} castShadow receiveShadow>
+      <Foundation w={w + 0.2} d={d + 0.2} h={0.1} />
+      <mesh position={[0, 0.1 + h / 2, 0]}>
         <boxGeometry args={[w, h, d]} />
-        <meshStandardMaterial color={mat.building} metalness={0.08} roughness={0.78} />
-      </mesh>
-      {/* windows */}
-      {[-0.5, 0.5].map((x) => (
-        <mesh key={x} position={[x, 0.12 + h * 0.55, d / 2 + 0.01]}>
-          <boxGeometry args={[0.45, 0.35, 0.02]} />
-          <meshStandardMaterial color={mat.window} metalness={0.3} roughness={0.15} transparent opacity={0.75} />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.12 + h * 0.35, d / 2 + 0.01]}>
-        <boxGeometry args={[0.35, 0.7, 0.02]} />
-        <meshStandardMaterial color={mat.steelDark} metalness={0.4} roughness={0.5} />
+        <meshBasicMaterial color={mat.building} />
       </mesh>
       {roof && (
-        <mesh position={[0, 0.12 + h + 0.06, 0]} castShadow>
-          <boxGeometry args={[w + 0.15, 0.12, d + 0.15]} />
-          <meshStandardMaterial color={mat.buildingRoof} metalness={0.35} roughness={0.5} />
+        <mesh position={[0, 0.1 + h + 0.05, 0]}>
+          <boxGeometry args={[w + 0.1, 0.1, d + 0.1]} />
+          <meshBasicMaterial color={mat.buildingRoof} />
         </mesh>
       )}
     </group>
@@ -346,28 +325,15 @@ export function StorageTank({
 }) {
   return (
     <group position={position}>
-      <Foundation w={radius * 2.3} d={radius * 2.3} h={0.15} />
-      <mesh position={[0, 0.15 + height / 2, 0]} castShadow>
-        <cylinderGeometry args={[radius, radius, height, 48]} />
-        <meshStandardMaterial color={mat.steelLight} metalness={0.7} roughness={0.25} />
+      <Foundation w={radius * 2.2} d={radius * 2.2} h={0.12} />
+      <mesh position={[0, 0.12 + height / 2, 0]}>
+        <cylinderGeometry args={[radius, radius, height, 16]} />
+        <meshBasicMaterial color={mat.steelLight} />
       </mesh>
-      <mesh position={[0, 0.15 + height, 0]} castShadow>
-        <cylinderGeometry args={[radius * 0.98, radius, 0.08, 48]} />
-        <meshStandardMaterial {...steelProps('dark')} />
+      <mesh position={[0, 0.12 + height, 0]}>
+        <cylinderGeometry args={[radius * 0.98, radius, 0.08, 16]} />
+        <meshBasicMaterial color={mat.steelDark} />
       </mesh>
-      {/* wind girders */}
-      {[0.4, 0.8, 1.2].map((y) => (
-        <mesh key={y} position={[0, 0.15 + y, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[radius + 0.02, 0.025, 8, 48]} />
-          <meshStandardMaterial {...steelProps('dark')} />
-        </mesh>
-      ))}
-      <StairTower height={height + 0.3} position={[radius + 0.35, 0.15, 0]} />
-      <Handrail
-        length={Math.PI * radius * 0.55}
-        position={[0, 0.15 + height + 0.15, 0]}
-        rotationY={0.4}
-      />
     </group>
   )
 }

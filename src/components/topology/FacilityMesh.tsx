@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Html, Line } from '@react-three/drei'
+import { Html } from '@react-three/drei'
+import { useState } from 'react'
 import type { SchemeNodeData } from '../../data/topology'
 import { FacilityAssembly } from './cim/FacilityAssembly'
 
@@ -12,6 +12,7 @@ interface Props {
   onSelect: (id: string) => void
 }
 
+/** Labels only when selected/hovered — Html on all nodes kills FPS */
 export function FacilityMesh({
   id,
   position,
@@ -21,7 +22,7 @@ export function FacilityMesh({
   onSelect,
 }: Props) {
   const [hovered, setHovered] = useState(false)
-  const outline = useMemo(() => selected || hovered, [selected, hovered])
+  const showLabel = selected || hovered
 
   return (
     <group
@@ -43,69 +44,32 @@ export function FacilityMesh({
     >
       <FacilityAssembly kind={data.kind} />
 
-      {outline && (
+      {(selected || hovered) && (
         <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[2.6, 2.75, 64]} />
+          <ringGeometry args={[2.2, 2.35, 32]} />
           <meshBasicMaterial color="#006CB1" transparent opacity={0.9} />
         </mesh>
       )}
 
-      {selected && (
-        <Line
-          points={[
-            [-2.8, 0.04, -2.4],
-            [2.8, 0.04, -2.4],
-            [2.8, 0.04, 2.4],
-            [-2.8, 0.04, 2.4],
-            [-2.8, 0.04, -2.4],
-          ]}
-          color="#006CB1"
-          lineWidth={1.5}
-        />
-      )}
-
-      <Html
-        position={[0, 4.2, 0]}
-        center
-        distanceFactor={16}
-        style={{ pointerEvents: 'none', opacity: dimmed && !selected ? 0.15 : 1 }}
-      >
-        <div
-          style={{
-            minWidth: 128,
-            padding: '5px 9px',
-            background: 'rgba(255,255,255,0.94)',
-            border: `1px solid ${selected ? '#006CB1' : '#B0B5BB'}`,
-            borderRadius: 2,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.16)',
-            fontFamily: 'Onest, sans-serif',
-            textAlign: 'center',
-          }}
-        >
+      {showLabel && (
+        <Html position={[0, 3.2, 0]} center distanceFactor={18} style={{ pointerEvents: 'none' }}>
           <div
             style={{
+              padding: '4px 8px',
+              background: 'rgba(255,255,255,0.95)',
+              border: '1px solid #006CB1',
+              borderRadius: 2,
+              fontFamily: 'Onest, sans-serif',
               fontSize: 11,
               fontWeight: 700,
               color: '#1a2332',
-              letterSpacing: '0.03em',
+              whiteSpace: 'nowrap',
             }}
           >
-            {data.label}
+            {data.label} · {data.status}%
           </div>
-          <div style={{ fontSize: 10, color: '#5C636B' }}>
-            {data.status}% · ЦИМ LOD300
-          </div>
-        </div>
-      </Html>
-
-      <mesh position={[2.4, 0.3, 2.2]}>
-        <boxGeometry args={[0.14, 0.14, 0.14]} />
-        <meshStandardMaterial
-          color={data.status >= 95 ? '#2E8B57' : data.status >= 85 ? '#D4A017' : '#C0392B'}
-          metalness={0.35}
-          roughness={0.45}
-        />
-      </mesh>
+        </Html>
+      )}
     </group>
   )
 }

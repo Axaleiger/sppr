@@ -1,6 +1,6 @@
 import { Suspense, useMemo, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { ContactShadows, Environment, OrbitControls, Sky } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import { edges3d, nodes3d } from '../../data/topology3d'
 import { FacilityMesh } from './FacilityMesh'
 import { FlowPipe } from './FlowPipe'
@@ -29,21 +29,21 @@ function Scene({
 }) {
   const positions = useMemo(() => {
     const map = new Map<string, [number, number, number]>()
-    nodes3d.forEach((n) => {
-      map.set(n.id, [n.position.x, n.position.y, n.position.z])
-    })
+    nodes3d.forEach((n) => map.set(n.id, [n.position.x, n.position.y, n.position.z]))
     return map
   }, [])
 
-  const wellOrigins = useMemo(() => {
-    return nodes3d
-      .filter((n) => n.data.kind === 'wells' || n.data.kind === 'plast')
-      .map((n) => [n.position.x, n.position.y, n.position.z] as [number, number, number])
-  }, [])
+  const wellOrigins = useMemo(
+    () =>
+      nodes3d
+        .filter((n) => n.data.kind === 'wells')
+        .map((n) => [n.position.x, n.position.y, n.position.z] as [number, number, number]),
+    [],
+  )
 
   const related = useMemo(() => {
     if (!selectedId) return null
-    const set = new Set<string>()
+    const set = new Set<string>([selectedId])
     edges3d.forEach((e) => {
       if (e.source === selectedId || e.target === selectedId) {
         set.add(e.id)
@@ -51,40 +51,17 @@ function Scene({
         set.add(e.target)
       }
     })
-    set.add(selectedId)
     return set
   }, [selectedId])
 
   return (
     <>
-      <color attach="background" args={['#B8C4CE']} />
-      <fog attach="fog" args={['#B8C4CE', 60, 110]} />
-      <Sky
-        distance={450000}
-        sunPosition={[40, 18, 25]}
-        inclination={0.49}
-        azimuth={0.22}
-        mieCoefficient={0.004}
-        rayleigh={0.8}
-      />
-      <hemisphereLight args={['#EAF2FF', '#6B8F4E', 0.5]} />
-      <ambientLight intensity={0.38} />
-      <directionalLight
-        castShadow
-        position={[30, 35, 16]}
-        intensity={1.65}
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-far={120}
-        shadow-camera-left={-50}
-        shadow-camera-right={50}
-        shadow-camera-top={50}
-        shadow-camera-bottom={-50}
-        color="#FFF6E8"
-      />
-      <directionalLight position={[-20, 12, -14]} intensity={0.3} color="#A8B8C8" />
+      <color attach="background" args={['#C5CED6']} />
+      <fog attach="fog" args={['#C5CED6', 70, 130]} />
+      <ambientLight intensity={0.85} />
+      <directionalLight position={[40, 50, 20]} intensity={0.55} />
 
       <GisTerrain mapMode={mapMode} showGrass={showGrass} />
-
       <WellboresUnderground origins={wellOrigins} visible={showWellbores} />
 
       {edges3d.map((e, i) => {
@@ -116,23 +93,14 @@ function Scene({
         />
       ))}
 
-      <ContactShadows
-        position={[0, 0.03, 0]}
-        opacity={0.35}
-        scale={90}
-        blur={2.4}
-        far={22}
-        color="#2A3035"
-      />
-      <Environment preset="warehouse" environmentIntensity={0.35} />
       <OrbitControls
         makeDefault
         enableDamping
-        dampingFactor={0.07}
-        minDistance={6}
-        maxDistance={85}
+        dampingFactor={0.12}
+        minDistance={8}
+        maxDistance={100}
         maxPolarAngle={Math.PI / 2.05}
-        target={[0, 1.2, 0]}
+        target={[0, 1, 0]}
       />
     </>
   )
@@ -142,24 +110,27 @@ const legend: { kind: FlowKind; label: string; color: string }[] = [
   { kind: 'oil', label: 'Нефтепровод', color: pipeMat.oil },
   { kind: 'gas', label: 'Газопровод', color: pipeMat.gas },
   { kind: 'water', label: 'Водопровод', color: pipeMat.water },
-  { kind: 'power', label: 'Кабельные трассы / ВЛ', color: pipeMat.power },
-  { kind: 'info', label: 'Информационные потоки', color: pipeMat.info },
+  { kind: 'power', label: 'Электросеть', color: pipeMat.power },
 ]
 
 export function Topology3D({ whatIf }: { whatIf: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mapMode, setMapMode] = useState<'imagery' | 'topo' | 'none'>('imagery')
-  const [showGrass, setShowGrass] = useState(true)
-  const [showWellbores, setShowWellbores] = useState(true)
+  const [showGrass, setShowGrass] = useState(false)
+  const [showWellbores, setShowWellbores] = useState(false)
   const selected = nodes3d.find((n) => n.id === selectedId)
 
   return (
-    <div className="relative h-[calc(100vh-7.5rem)] w-full overflow-hidden rounded-none border border-white/10 bg-[#B8C4CE] md:rounded-2xl">
+    <div className="relative h-[calc(100vh-7.5rem)] w-full overflow-hidden rounded-none border border-white/10 bg-[#C5CED6] md:rounded-2xl">
       <Canvas
-        shadows
-        dpr={[1, 1.75]}
-        camera={{ position: [32, 20, 34], fov: 36, near: 0.1, far: 300 }}
-        gl={{ antialias: true, logarithmicDepthBuffer: true }}
+        dpr={[1, 1]}
+        camera={{ position: [42, 28, 48], fov: 40, near: 0.5, far: 250 }}
+        gl={{
+          antialias: false,
+          powerPreference: 'high-performance',
+          stencil: false,
+          depth: true,
+        }}
         onPointerMissed={() => setSelectedId(null)}
       >
         <Suspense fallback={null}>
@@ -174,28 +145,26 @@ export function Topology3D({ whatIf }: { whatIf: boolean }) {
         </Suspense>
       </Canvas>
 
-      <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-sm rounded border border-[#B0B5BB] bg-white/95 px-3 py-2 shadow-sm">
+      <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-xs rounded border border-[#B0B5BB] bg-white/95 px-3 py-2 shadow-sm">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-[#5C636B]">
-          ЦИМ + ГИС · Digital Twin
+          ЦПС · сеть обустройства
         </div>
         <div className="mt-0.5 text-sm font-semibold text-[#1a2332]">
-          3D обустройство промысла
+          {nodes3d.length} объектов · {edges3d.length} связей
         </div>
         <div className="mt-0.5 text-[11px] text-[#6B7280]">
-          Подложка ESRI · {FIELD_ORIGIN.lat.toFixed(3)}°N, {FIELD_ORIGIN.lon.toFixed(3)}°E ·
-          скважины LOD+ · стволы
+          {FIELD_ORIGIN.lat.toFixed(2)}°N {FIELD_ORIGIN.lon.toFixed(2)}°E · perf mode
         </div>
       </div>
 
-      {/* Layer panel — VGIS / Esri style */}
-      <div className="absolute right-4 top-4 z-10 w-52 rounded border border-[#B0B5BB] bg-white/95 p-3 shadow-sm">
+      <div className="absolute right-4 top-4 z-10 w-48 rounded border border-[#B0B5BB] bg-white/95 p-3 shadow-sm">
         <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#5C636B]">
-          Слои карты
+          Слои
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {(
             [
-              ['imagery', 'Спутник (ESRI)'],
+              ['imagery', 'Спутник'],
               ['topo', 'Топооснова'],
               ['none', 'Без подложки'],
             ] as const
@@ -205,53 +174,40 @@ export function Topology3D({ whatIf }: { whatIf: boolean }) {
               type="button"
               onClick={() => setMapMode(id)}
               className={cn(
-                'w-full rounded px-2 py-1.5 text-left text-[11px] transition',
-                mapMode === id
-                  ? 'bg-gpn-blue text-white'
-                  : 'bg-[#F4F7FA] text-[#1a2332] hover:bg-[#E8ECF0]',
+                'w-full rounded px-2 py-1 text-left text-[11px]',
+                mapMode === id ? 'bg-gpn-blue text-white' : 'bg-[#F4F7FA] text-[#1a2332]',
               )}
             >
               {label}
             </button>
           ))}
         </div>
-        <label className="mt-3 flex cursor-pointer items-center justify-between text-[11px] text-[#1a2332]">
-          <span>Травяной покров</span>
-          <input
-            type="checkbox"
-            checked={showGrass}
-            onChange={(e) => setShowGrass(e.target.checked)}
-            className="accent-gpn-blue"
-          />
+        <label className="mt-2 flex items-center justify-between text-[11px] text-[#1a2332]">
+          <span>Трава</span>
+          <input type="checkbox" checked={showGrass} onChange={(e) => setShowGrass(e.target.checked)} />
         </label>
-        <label className="mt-2 flex cursor-pointer items-center justify-between text-[11px] text-[#1a2332]">
-          <span>Стволы скважин (3D)</span>
+        <label className="mt-1 flex items-center justify-between text-[11px] text-[#1a2332]">
+          <span>Стволы</span>
           <input
             type="checkbox"
             checked={showWellbores}
             onChange={(e) => setShowWellbores(e.target.checked)}
-            className="accent-gpn-blue"
           />
         </label>
       </div>
 
       <div className="absolute bottom-4 left-4 z-10 rounded border border-[#B0B5BB] bg-white/95 px-3 py-2 shadow-sm">
-        <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#5C636B]">
-          Инженерные сети
-        </div>
-        <div className="flex flex-col gap-1">
-          {legend.map((l) => (
-            <div key={l.kind} className="flex items-center gap-2 text-[11px] text-[#1a2332]">
-              <span className="h-1 w-7 rounded-sm" style={{ background: l.color }} />
-              {l.label}
-            </div>
-          ))}
-        </div>
+        {legend.map((l) => (
+          <div key={l.kind} className="flex items-center gap-2 text-[11px] text-[#1a2332]">
+            <span className="h-1 w-6 rounded-sm" style={{ background: l.color }} />
+            {l.label}
+          </div>
+        ))}
       </div>
 
       {whatIf && (
-        <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded border border-[#C0392B]/40 bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-[#C0392B] shadow-sm">
-          Режим «Что если» — вариантные потоки
+        <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded border border-red-300 bg-white/95 px-3 py-1 text-[11px] font-semibold text-red-700">
+          Что если
         </div>
       )}
 
