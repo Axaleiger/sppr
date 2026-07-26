@@ -1,13 +1,13 @@
 import { Suspense, useMemo, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { ContactShadows, Environment, OrbitControls } from '@react-three/drei'
 import { edges3d, nodes3d } from '../../data/topology3d'
 import { FacilityMesh } from './FacilityMesh'
 import { FlowPipe } from './FlowPipe'
 import { ObjectDetailPanel } from './ObjectDetailPanel'
 import { pipeMat } from './cim/materials'
 import { GisTerrain } from './cim/GisTerrain'
-import { WellboresUnderground } from './cim/DetailedWell'
+import { WellboresUnderground } from './cim/Wellbores'
 import { FIELD_ORIGIN } from './cim/gis'
 import type { FlowKind } from '../../data/topology'
 import { cn } from '../../lib/utils'
@@ -56,10 +56,23 @@ function Scene({
 
   return (
     <>
-      <color attach="background" args={['#C5CED6']} />
-      <fog attach="fog" args={['#C5CED6', 70, 130]} />
-      <ambientLight intensity={0.85} />
-      <directionalLight position={[40, 50, 20]} intensity={0.55} />
+      <color attach="background" args={['#C9D2DB']} />
+      <fog attach="fog" args={['#C9D2DB', 65, 120]} />
+      <hemisphereLight args={['#F0F5FA', '#7A8F5C', 0.45]} />
+      <ambientLight intensity={0.42} />
+      <directionalLight
+        castShadow
+        position={[35, 42, 18]}
+        intensity={1.35}
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-far={100}
+        shadow-camera-left={-45}
+        shadow-camera-right={45}
+        shadow-camera-top={45}
+        shadow-camera-bottom={-45}
+        color="#FFF5E8"
+      />
+      <directionalLight position={[-18, 12, -12]} intensity={0.28} color="#A8B8C8" />
 
       <GisTerrain mapMode={mapMode} showGrass={showGrass} />
       <WellboresUnderground origins={wellOrigins} visible={showWellbores} />
@@ -93,10 +106,12 @@ function Scene({
         />
       ))}
 
+      <ContactShadows position={[0, 0.03, 0]} opacity={0.32} scale={90} blur={2.2} far={18} color="#2A3035" />
+      <Environment preset="warehouse" environmentIntensity={0.32} />
       <OrbitControls
         makeDefault
         enableDamping
-        dampingFactor={0.12}
+        dampingFactor={0.1}
         minDistance={8}
         maxDistance={100}
         maxPolarAngle={Math.PI / 2.05}
@@ -116,21 +131,17 @@ const legend: { kind: FlowKind; label: string; color: string }[] = [
 export function Topology3D({ whatIf }: { whatIf: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mapMode, setMapMode] = useState<'imagery' | 'topo' | 'none'>('imagery')
-  const [showGrass, setShowGrass] = useState(false)
+  const [showGrass, setShowGrass] = useState(true)
   const [showWellbores, setShowWellbores] = useState(false)
   const selected = nodes3d.find((n) => n.id === selectedId)
 
   return (
-    <div className="relative h-[calc(100vh-7.5rem)] w-full overflow-hidden rounded-none border border-white/10 bg-[#C5CED6] md:rounded-2xl">
+    <div className="relative h-[calc(100vh-7.5rem)] w-full overflow-hidden rounded-none border border-white/10 bg-[#C9D2DB] md:rounded-2xl">
       <Canvas
-        dpr={[1, 1]}
-        camera={{ position: [42, 28, 48], fov: 40, near: 0.5, far: 250 }}
-        gl={{
-          antialias: false,
-          powerPreference: 'high-performance',
-          stencil: false,
-          depth: true,
-        }}
+        shadows
+        dpr={[1, 1.5]}
+        camera={{ position: [42, 28, 48], fov: 38, near: 0.4, far: 250 }}
+        gl={{ antialias: true, powerPreference: 'high-performance' }}
         onPointerMissed={() => setSelectedId(null)}
       >
         <Suspense fallback={null}>
@@ -147,13 +158,13 @@ export function Topology3D({ whatIf }: { whatIf: boolean }) {
 
       <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-xs rounded border border-[#B0B5BB] bg-white/95 px-3 py-2 shadow-sm">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-[#5C636B]">
-          ЦПС · сеть обустройства
+          ЦПС · детализированная ЦИМ
         </div>
         <div className="mt-0.5 text-sm font-semibold text-[#1a2332]">
           {nodes3d.length} объектов · {edges3d.length} связей
         </div>
         <div className="mt-0.5 text-[11px] text-[#6B7280]">
-          {FIELD_ORIGIN.lat.toFixed(2)}°N {FIELD_ORIGIN.lon.toFixed(2)}°E · perf mode
+          {FIELD_ORIGIN.lat.toFixed(2)}°N {FIELD_ORIGIN.lon.toFixed(2)}°E
         </div>
       </div>
 
